@@ -249,7 +249,11 @@ class TickerBase():
 
     def _get_fundamentals(self, kind=None, proxy=None):
         def cleanup(data):
-            df = _pd.DataFrame(data).drop(columns=['maxAge'])
+            df = _pd.DataFrame(data)
+            try:
+                df = df.drop(columns=['maxAge'])
+            except:
+                pass
             for col in df.columns:
                 df[col] = _np.where(
                     df[col].astype(str) == '-', _np.nan, df[col])
@@ -280,17 +284,20 @@ class TickerBase():
         data = utils.get_json(url, proxy)
 
         # holders
-        #url = "{}/{}/holders".format(self._scrape_url, self.ticker)
+        url = "{}/{}".format(self._scrape_url, self.ticker)
         holders = _pd.read_html(url+'/holders')
-        self._major_holders = holders[0]
-        self._institutional_holders = holders[1]
-        if 'Date Reported' in self._institutional_holders:
-            self._institutional_holders['Date Reported'] = _pd.to_datetime(
-                self._institutional_holders['Date Reported'])
-        if '% Out' in self._institutional_holders:
-            self._institutional_holders['% Out'] = self._institutional_holders[
-                '% Out'].str.replace('%', '').astype(float)/100
-
+        try:        
+            self._major_holders = holders[0]
+            self._institutional_holders = holders[1]
+            if 'Date Reported' in self._institutional_holders:
+                self._institutional_holders['Date Reported'] = _pd.to_datetime(
+                    self._institutional_holders['Date Reported'])
+            if '% Out' in self._institutional_holders:
+                self._institutional_holders['% Out'] = self._institutional_holders[
+                    '% Out'].str.replace('%', '').astype(float)/100
+        except:
+            pass
+        
         # sustainability
         d = {}
         if isinstance(data.get('esgScores'), dict):
@@ -315,7 +322,10 @@ class TickerBase():
             if isinstance(data.get(item), dict):
                 self._info.update(data[item])
 
-        self._info['regularMarketPrice'] = self._info['regularMarketOpen']
+        try:
+            self._info['regularMarketPrice'] = self._info['regularMarketOpen']
+        except:
+            pass
         self._info['logo_url'] = ""
         try:
             domain = self._info['website'].split(
